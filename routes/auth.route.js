@@ -3,8 +3,8 @@ const router = Router()
 const User = require('../models/User');
 const bcrypt = require('bcryptjs')
 const {check, validationResult} = require('express-validator')
-const jwt = require('jsonwebtoken')
-
+const jwt = require('jsonwebtoken');
+const SendWelcomeMessage = require('../Mailer/Mailer');
 router.post('/registration',  
   [
     check('email', 'Неккорректный email').isEmail(),
@@ -19,10 +19,10 @@ async (req,res)=>{
     console.log(email, password)
     const isUsed= await User.findOne({email})
     if(isUsed) return res.status(300).json({message:'Данный email уже есть , воспользуйтесь другим.'})
-    
     const hashed = await bcrypt.hash(password,12);
     const user = new User({email,password:hashed})
     await user.save()
+    await SendWelcomeMessage({email,password})
     res.status(201).json({message:'Пользователь создан'});
   } catch (e) {
     console.log(e);
@@ -41,7 +41,10 @@ async (req,res)=>{
       const {email, password} = req.body;
       const user = await User.findOne({email})
       if(!user) return res.status(400).json({message:'Пользователь не найден.'})
-      const isMatch = bcrypt.compare(password, user.password)
+      const isMatch = bcrypt.compare(password, user.password).then(data =>{
+      if(data) return res.status(201).json({message:"Вы успешно зашли"})
+      return res.status(300).json({message:"Данные не верные"})
+      })
       if(!isMatch) return res.status(400).json({message:"Данные не верны."})
       const jwtSecret = '1fgdsfds7s4vsd759sahbfd7857'
       const token = jwt.sign(
@@ -50,8 +53,6 @@ async (req,res)=>{
           {expiresIn: '1h'}
         
       )
-
-      res.status(201).json({message:"Вы успешно зашли"})
   } catch (e) {
     console.log(e);
   }

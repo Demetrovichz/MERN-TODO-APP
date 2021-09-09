@@ -11,7 +11,7 @@ export const useRoutes = (isLogin) =>{
       </Switch>
     )
    return <Switch>
-    <Route path="/login " exact component = {AuthPage} />
+    <Route path="/login" exact component = {AuthPage} />
     <Redirect to='/' />
   </Switch>
 }
